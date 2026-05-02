@@ -33,20 +33,21 @@ def performance_kpi():
     att = sum(erab_att_cols)
     rel = sum(erab_rel_cols)
 
+    # Source data has rows with `ERAB_SessionTimeUE <= 0` and occasional
+    # negative `ERAB_RelActNbr_QCI*`, which produce nonsensical retainability
+    # values (huge negatives or infinities). Null those out so dashboards and
+    # downstream agents only see physically plausible numbers.
+    safe_session = F.when(F.col("ERAB_SessionTimeUE") > 0, F.col("ERAB_SessionTimeUE").cast("double"))
+    safe_succ_rate = succ * F.lit(100.0) / F.when(att == 0, None).otherwise(att.cast("double"))
+    raw_retain = rel.cast("double") / safe_session * F.lit(3600.0)
+    safe_retain = F.when((raw_retain >= 0) & (raw_retain < 1000), raw_retain)
+
     return (
         df.select(
             "enodeb_id",
             "cell_id",
             "measurement_end",
-            (succ * F.lit(100.0) / F.when(att == 0, None).otherwise(att.cast("double"))).alias(
-                "erab_success_rate"
-            ),
-            (
-                rel.cast("double")
-                / F.when(F.col("ERAB_SessionTimeUE") == 0, None).otherwise(
-                    F.col("ERAB_SessionTimeUE").cast("double")
-                )
-                * F.lit(3600.0)
-            ).alias("retainability"),
+            safe_succ_rate.alias("erab_success_rate"),
+            safe_retain.alias("retainability"),
         )
     )
