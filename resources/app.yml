@@ -1,0 +1,25 @@
+resources:
+  apps:
+    telco_rca:
+      name: ${var.app_name}
+      description: |
+        Databricks-native multi-agent telco RCA demo.
+        FastAPI backend + React/Vite frontend; agents: incident_detector + rca_orchestrator.
+      source_code_path: ${workspace.file_path}
+      resources:
+        - name: sql_warehouse
+          sql_warehouse:
+            id: ${var.warehouse_id}
+            permission: CAN_USE
+        - name: llm_endpoint
+          serving_endpoint:
+            name: ${var.llm_endpoint}
+            permission: CAN_QUERY
+        - name: agent_endpoint
+          serving_endpoint:
+            name: ${var.agent_endpoint}
+            permission: CAN_QUERY
+        - name: embedding_endpoint
+          serving_endpoint:
+            name: ${var.embedding_endpoint}
+            permission: CAN_QUERY

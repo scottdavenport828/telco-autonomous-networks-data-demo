@@ -1,0 +1,60 @@
+bundle:
+  name: telco-autonomous-networks-databricks
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    description: Unity Catalog catalog used for telco demo data and registered models
+    default: telco_demo
+
+  schema:
+    description: UC schema for tables, volumes, models
+    default: network_intel
+
+  volume:
+    description: UC volume for raw CSV / JSON fixtures
+    default: raw
+
+  llm_endpoint:
+    description: AI-Gateway-fronted Claude Opus 4.7 serving endpoint
+    default: claude-opus-4-7-gw
+
+  embedding_endpoint:
+    description: FMAPI embedding endpoint
+    default: databricks-gte-large-en
+
+  agent_endpoint:
+    description: Mosaic AI agent serving endpoint
+    default: telco-rca-agents
+
+  vs_endpoint:
+    description: Vector Search endpoint
+    default: srd-vibes-vs
+
+  rules_index:
+    description: Vector Search index for RCA rules
+    default: rca_rules_vs_idx
+
+  incidents_index:
+    description: Vector Search index for prior incidents
+    default: incidents_vs_idx
+
+  warehouse_id:
+    description: Serverless SQL warehouse ID for the app to query Delta tables
+    default: ""
+
+  app_name:
+    description: Databricks App name
+    default: telco-rca
+
+targets:
+  dev:
+    mode: development
+    default: true
+    workspace:
+      host: https://fevm-srd-vibes.cloud.databricks.com
+      profile: srd-vibes
+    run_as:
+      user_name: ${workspace.current_user.userName}

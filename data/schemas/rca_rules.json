@@ -1,0 +1,70 @@
+[
+  {
+    "name": "id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Stable identifier (filename without extension)."
+  },
+  {
+    "name": "description",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Short description of the rule, what KPI / scenario it applies to."
+  },
+  {
+    "name": "kpi_missed",
+    "type": "STRING",
+    "mode": "REPEATED",
+    "description": "Array of KPI names this rule applies to."
+  },
+  {
+    "name": "processing_rule",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Natural-language instruction for the analyzer agent."
+  },
+  {
+    "name": "processing_rule_tools",
+    "type": "STRING",
+    "mode": "REPEATED",
+    "description": "Tool names the analyzer should be permitted to call."
+  },
+  {
+    "name": "severity_determination_rule",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Natural-language instruction for the severity classifier."
+  },
+  {
+    "name": "severity_determination_rule_tools",
+    "type": "STRING",
+    "mode": "REPEATED",
+    "description": "Tool names the severity classifier should be permitted to call."
+  },
+  {
+    "name": "vendor",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "author",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "creation_date",
+    "type": "TIMESTAMP",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "is_current",
+    "type": "BOOL",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "search_text",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Concatenated description + processing_rule + severity_determination_rule. Embedded for Vector Search."
+  }
+]

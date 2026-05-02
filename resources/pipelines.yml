@@ -1,0 +1,16 @@
+resources:
+  pipelines:
+    performance_kpi:
+      name: telco-rca-performance-kpi
+      catalog: ${var.catalog}
+      target: ${var.schema}
+      serverless: true
+      photon: true
+      development: true
+      continuous: false
+      libraries:
+        - notebook:
+            path: ../notebooks/03_create_kpi_view.py
+      configuration:
+        catalog: ${var.catalog}
+        schema: ${var.schema}

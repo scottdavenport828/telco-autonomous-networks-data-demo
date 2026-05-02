@@ -1,0 +1,51 @@
+resources:
+  jobs:
+    setup:
+      name: telco-rca-setup
+      description: |
+        One-shot bootstrap. Creates UC catalog/schema/volume, Delta tables for
+        performance, cell_traces, incidents, rca_rules. Creates Vector Search
+        endpoint and indexes for rules and prior incidents.
+      tasks:
+        - task_key: setup
+          notebook_task:
+            notebook_path: ../notebooks/01_setup.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              volume: ${var.volume}
+              vs_endpoint: ${var.vs_endpoint}
+              rules_index: ${var.rules_index}
+              incidents_index: ${var.incidents_index}
+              embedding_endpoint: ${var.embedding_endpoint}
+
+    load_data:
+      name: telco-rca-load-data
+      description: Upload CSV/JSON fixtures to Volume and MERGE into Delta tables.
+      tasks:
+        - task_key: load_data
+          notebook_task:
+            notebook_path: ../notebooks/02_load_data.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              volume: ${var.volume}
+
+    register_agents:
+      name: telco-rca-register-agents
+      description: |
+        Logs and registers the incident_detector + rca_orchestrator MLflow
+        ChatAgents to UC and deploys them to a serving endpoint.
+      tasks:
+        - task_key: register
+          notebook_task:
+            notebook_path: ../notebooks/05_register_and_deploy_agent.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              llm_endpoint: ${var.llm_endpoint}
+              embedding_endpoint: ${var.embedding_endpoint}
+              vs_endpoint: ${var.vs_endpoint}
+              rules_index: ${var.rules_index}
+              incidents_index: ${var.incidents_index}
+              agent_endpoint: ${var.agent_endpoint}
