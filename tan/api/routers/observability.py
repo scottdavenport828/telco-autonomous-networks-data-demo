@@ -69,11 +69,31 @@ def _safe_query(sql: SqlClient, statement: str) -> tuple[list[dict[str, Any]], s
 
     On success returns ``(rows, None)``. On failure returns ``([], message)``
     so the caller can shape a graceful response.
+
+    Recognised "the inference table is still warming up" errors are folded into
+    ``(empty, None)`` because they are noise rather than something a viewer
+    should see — AI Gateway adds columns to the inference table only after the
+    first batch of records is flushed (~5–10 minutes after gateway is enabled).
     """
     try:
         return sql.query(statement), None
     except Exception as exc:  # noqa: BLE001 — we genuinely want to swallow + report
-        return [], f"{type(exc).__name__}: {exc}"
+        msg = f"{type(exc).__name__}: {exc}"
+        # The inference table is auto-created with only `databricks_request_id`
+        # until the first records flush; queries that reference the canonical
+        # gateway columns (request_time, response, status_code, …) will fail
+        # with `UNRESOLVED_COLUMN`. Treat that as "no data yet" instead of an
+        # error — the UI has dedicated empty-state copy for that.
+        # Same goes for TABLE_OR_VIEW_NOT_FOUND when the table doesn't exist
+        # at all yet (e.g. agent inference table for first-time deploys).
+        lowered = msg.lower()
+        if (
+            "unresolved_column" in lowered
+            or "table_or_view_not_found" in lowered
+            or "cannot be resolved" in lowered
+        ):
+            return [], None
+        return [], msg
 
 
 # ---------------------------------------------------------------------------
