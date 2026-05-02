@@ -80,6 +80,79 @@ export type AgentStreamEvent =
   | AssistantMessageEvent
   | DoneEvent;
 
+// ---- Observability types -----------------------------------------------------
+
+export type TokenBucket = {
+  hr: string;
+  model: string;
+  input_tokens: number;
+  output_tokens: number;
+  calls: number;
+};
+
+export type LatencyBucket = {
+  hr: string;
+  source: "gateway" | "agent" | string;
+  calls: number;
+  p50: number;
+  p95: number;
+  p99: number;
+};
+
+export type RecentCall = {
+  ts: string;
+  source: "gateway" | "agent" | string;
+  model: string;
+  latency_ms: number;
+  input_tokens: number | null;
+  output_tokens: number | null;
+  status: number;
+  request_id: string;
+  requester: string | null;
+};
+
+export type PiiBucket = {
+  hr: string;
+  direction: "input" | "output" | string;
+  events: number;
+};
+
+export type PiiSample = {
+  ts: string;
+  request_id: string;
+  status: number;
+  direction: "input" | "output" | string;
+  message: string;
+};
+
+export type TokensResponse = {
+  hours: number;
+  rows: TokenBucket[];
+  source: string;
+  error: string | null;
+};
+
+export type LatencyResponse = {
+  hours: number;
+  rows: LatencyBucket[];
+  threshold_ms: number;
+  error: string | null;
+};
+
+export type RecentResponse = {
+  rows: RecentCall[];
+  error: string | null;
+};
+
+export type PiiResponse = {
+  hours: number;
+  total: number;
+  by_direction: { input: number; output: number };
+  buckets: PiiBucket[];
+  samples: PiiSample[];
+  error: string | null;
+};
+
 async function jsonFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const response = await fetch(path, {
     ...init,
@@ -199,4 +272,8 @@ export const api = {
       body: JSON.stringify({ messages }),
     }),
   chatStream,
+  obsTokens: (hours = 24) => jsonFetch<TokensResponse>(`/api/obs/tokens?hours=${hours}`),
+  obsLatency: (hours = 24) => jsonFetch<LatencyResponse>(`/api/obs/latency?hours=${hours}`),
+  obsRecent: (limit = 50) => jsonFetch<RecentResponse>(`/api/obs/recent?limit=${limit}`),
+  obsPii: (hours = 24) => jsonFetch<PiiResponse>(`/api/obs/pii?hours=${hours}`),
 };

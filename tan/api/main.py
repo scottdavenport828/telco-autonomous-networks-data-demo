@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from tan.api.routers import chat, incidents, kpis
+from tan.api.routers import chat, incidents, kpis, observability
 
 app = FastAPI(
     title="Telco Autonomous Networks — Databricks-native demo",
@@ -30,6 +30,7 @@ app.add_middleware(
 app.include_router(kpis.router)
 app.include_router(incidents.router)
 app.include_router(chat.router)
+app.include_router(observability.router)
 
 
 @app.get("/api/healthz")
