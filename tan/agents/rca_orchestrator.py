@@ -160,6 +160,12 @@ TOOL_SPECS: list[dict[str, Any]] = [
 
 
 class RcaOrchestratorAgent(ChatAgent):
+    # Class-level metadata used by the streaming wrapper in `tan/agents/stream.py`
+    # so it can drive the loop without importing module-level globals.
+    SYSTEM_PROMPT: str = SYSTEM_PROMPT
+    TOOL_SPECS: list[dict[str, Any]] = TOOL_SPECS
+    MAX_STEPS: int = 20
+
     def __init__(
         self,
         *,
@@ -180,6 +186,15 @@ class RcaOrchestratorAgent(ChatAgent):
         self.incidents_index = incidents_index or VectorIndex(
             self.settings.vs_endpoint, self.settings.incidents_index_full
         )
+
+    def _llm_chat(self, history: list[dict[str, Any]]) -> dict[str, Any]:
+        """Single LLM round trip with this agent's tool specs.
+
+        Both the non-streaming `predict()` and the streaming wrapper in
+        `tan/agents/stream.py` go through this helper so they share the same
+        request shape and logging.
+        """
+        return self.llm.chat(history, tools=self.TOOL_SPECS)
 
     def _execute_tool(self, name: str, args: dict[str, Any]) -> dict[str, Any]:
         if name == "get_incident_info":
@@ -227,10 +242,12 @@ class RcaOrchestratorAgent(ChatAgent):
         context: ChatContext | None = None,
         custom_inputs: dict[str, Any] | None = None,
     ) -> ChatAgentResponse:
-        history = [{"role": "system", "content": SYSTEM_PROMPT}] + [m.model_dump() for m in messages]
+        history = [{"role": "system", "content": self.SYSTEM_PROMPT}] + [
+            m.model_dump() for m in messages
+        ]
 
-        for _step in range(20):
-            response = self.llm.chat(history, tools=TOOL_SPECS)
+        for _step in range(self.MAX_STEPS):
+            response = self._llm_chat(history)
             choice = response["choices"][0]["message"]
             history.append(choice)
 

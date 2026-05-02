@@ -46,6 +46,40 @@ export type ChatMessage = {
   tool_calls?: { id: string; type: "function"; function: { name: string; arguments: string } }[];
 };
 
+// ---- Streaming agent events --------------------------------------------------
+// These mirror the events emitted by `tan/agents/stream.py::stream_predict`.
+
+export type ToolStartEvent = {
+  type: "tool_start";
+  id: string;
+  name: string;
+  args: Record<string, unknown>;
+  ts_ms: number;
+};
+
+export type ToolEndEvent = {
+  type: "tool_end";
+  id: string;
+  result: unknown;
+  elapsed_ms: number;
+  status: "ok" | "error";
+  error?: string | null;
+};
+
+export type AssistantMessageEvent = {
+  type: "assistant_message";
+  id: string;
+  content: string;
+};
+
+export type DoneEvent = { type: "done" };
+
+export type AgentStreamEvent =
+  | ToolStartEvent
+  | ToolEndEvent
+  | AssistantMessageEvent
+  | DoneEvent;
+
 async function jsonFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const response = await fetch(path, {
     ...init,
@@ -53,6 +87,99 @@ async function jsonFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   });
   if (!response.ok) throw new Error(`${response.status} ${response.statusText}: ${await response.text()}`);
   return response.json();
+}
+
+/**
+ * Open a streaming chat with the given agent and yield typed lifecycle events.
+ *
+ * Reads the `text/event-stream` body via `response.body.getReader()` +
+ * `TextDecoder`, parses each SSE frame (`data: {json}\n\n`), and yields the
+ * decoded event. The generator returns when an `event: done` frame is seen
+ * or the stream ends.
+ */
+export async function* chatStream(
+  agent: string,
+  messages: ChatMessage[],
+  signal?: AbortSignal,
+): AsyncGenerator<AgentStreamEvent, void, void> {
+  const response = await fetch(`/api/chat/${agent}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
+    body: JSON.stringify({ messages }),
+    signal,
+  });
+  if (!response.ok || !response.body) {
+    const text = await response.text().catch(() => "");
+    throw new Error(`chat ${agent} failed: ${response.status} ${response.statusText} ${text}`);
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder("utf-8");
+  let buffer = "";
+
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      // SSE frames are separated by a blank line.
+      let separatorIndex = buffer.indexOf("\n\n");
+      while (separatorIndex !== -1) {
+        const frame = buffer.slice(0, separatorIndex);
+        buffer = buffer.slice(separatorIndex + 2);
+        const event = parseSseFrame(frame);
+        if (event) yield event;
+        separatorIndex = buffer.indexOf("\n\n");
+      }
+    }
+
+    // Flush any tail bytes (no trailing blank line on a clean close).
+    buffer += decoder.decode();
+    if (buffer.trim()) {
+      const event = parseSseFrame(buffer);
+      if (event) yield event;
+    }
+  } finally {
+    try {
+      reader.releaseLock();
+    } catch {
+      // ignore — already released
+    }
+  }
+}
+
+function parseSseFrame(frame: string): AgentStreamEvent | null {
+  // Each frame can have multiple `field: value` lines; we only care about
+  // `event` and `data`. Comments (`:`) are ignored.
+  let eventName: string | null = null;
+  const dataLines: string[] = [];
+
+  for (const rawLine of frame.split("\n")) {
+    const line = rawLine.replace(/\r$/, "");
+    if (!line || line.startsWith(":")) continue;
+    const colonIdx = line.indexOf(":");
+    if (colonIdx === -1) continue;
+    const field = line.slice(0, colonIdx).trim();
+    // SSE spec strips a single optional leading space from the value.
+    const value = line.slice(colonIdx + 1).replace(/^\s/, "");
+    if (field === "event") eventName = value;
+    else if (field === "data") dataLines.push(value);
+  }
+
+  if (eventName === "done") return { type: "done" };
+  if (!dataLines.length) return null;
+
+  const payload = dataLines.join("\n");
+  if (!payload || payload === "{}") return null;
+  try {
+    return JSON.parse(payload) as AgentStreamEvent;
+  } catch (err) {
+    // Tolerate malformed frames rather than crashing the whole stream.
+    // eslint-disable-next-line no-console
+    console.warn("chatStream: dropping malformed frame", err, payload);
+    return null;
+  }
 }
 
 export const api = {
@@ -71,10 +198,5 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ messages }),
     }),
-  chatStream: (agent: string, messages: ChatMessage[]) =>
-    fetch(`/api/chat/${agent}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages }),
-    }),
+  chatStream,
 };
