@@ -4,6 +4,12 @@ bundle:
 include:
   - resources/*.yml
 
+sync:
+  include:
+    # DAB excludes non-source files by default; force-include the React build
+    # so the FastAPI static mount finds it inside the app container.
+    - tan/api/static/**
+
 variables:
   catalog:
     description: Unity Catalog catalog used for telco demo data and registered models
