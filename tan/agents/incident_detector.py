@@ -13,8 +13,9 @@ import uuid
 from typing import Any
 
 import mlflow
-from mlflow.pyfunc import ChatAgent
-from mlflow.types.agent import (
+
+from tan.agents._chat_compat import (
+    ChatAgent,
     ChatAgentChunk,
     ChatAgentMessage,
     ChatAgentResponse,
@@ -182,5 +183,11 @@ class IncidentDetectorAgent(ChatAgent):
 
 
 # Required when this module is logged via `mlflow.pyfunc.log_model(python_model=<this_file>)`.
-AGENT = IncidentDetectorAgent()
-mlflow.models.set_model(AGENT)
+# Wrap so a normal Python import (e.g. inside the FastAPI app, where the streaming
+# chat router needs to instantiate per-request) doesn't fail when env vars or
+# MLflow context aren't fully wired.
+try:
+    AGENT = IncidentDetectorAgent()
+    mlflow.models.set_model(AGENT)
+except Exception as _e:  # noqa: BLE001
+    logger.warning("Skipping module-level set_model: %s", _e)

@@ -19,8 +19,9 @@ import uuid
 from typing import Any
 
 import mlflow
-from mlflow.pyfunc import ChatAgent
-from mlflow.types.agent import (
+
+from tan.agents._chat_compat import (
+    ChatAgent,
     ChatAgentChunk,
     ChatAgentMessage,
     ChatAgentResponse,
@@ -293,5 +294,8 @@ class RcaOrchestratorAgent(ChatAgent):
             yield ChatAgentChunk(delta=msg)
 
 
-AGENT = RcaOrchestratorAgent()
-mlflow.models.set_model(AGENT)
+try:
+    AGENT = RcaOrchestratorAgent()
+    mlflow.models.set_model(AGENT)
+except Exception as _e:  # noqa: BLE001
+    logger.warning("Skipping module-level set_model: %s", _e)
