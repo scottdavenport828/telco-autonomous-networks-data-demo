@@ -57,36 +57,42 @@ for jp in (REPO_ROOT / "data" / "rca-rules").glob("*.json"):
 # MAGIC and overwrite-replace the Delta partition.
 
 # COMMAND ----------
+# Use the CSV header to drive the schema — DO NOT pass an explicit schema.
+# The upstream BigQuery schema and the CSV header have different column orders
+# (and the CSV is missing a few totals that the BQ schema includes), so reading
+# by-position with the BQ schema scrambles the data. inferSchema is fine here
+# because the CSV is small (~3.7 MB).
 target_perf = f"{CATALOG}.{SCHEMA}.performance"
-target_schema = spark.read.table(target_perf).schema
 
-# CSV has uppercase EnodeB_id; rename to enodeb_id to match Delta schema.
 df = (
     spark.read.option("header", True)
+    .option("inferSchema", True)
     .option("timestampFormat", "MM/dd/yyyy HH:mm:ss")
-    .schema(target_schema)
     .csv(f"{VOLUME_ROOT}/performance.csv")
+    # Normalise the one column whose case differs from BQ schema convention.
+    .withColumnRenamed("EnodeB_id", "enodeb_id")
 )
 
-print(f"Performance rows: {df.count()}")
-df.write.format("delta").mode("overwrite").saveAsTable(target_perf)
+print(f"Performance rows: {df.count()}; cols: {len(df.columns)}")
+df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(target_perf)
 
 # COMMAND ----------
 # MAGIC %md ## 3. Cell traces — CSV → Delta
 
 # COMMAND ----------
 target_traces = f"{CATALOG}.{SCHEMA}.cell_traces"
-target_schema = spark.read.table(target_traces).schema
 
 df = (
     spark.read.option("header", True)
+    .option("inferSchema", True)
     .option("timestampFormat", "MM/dd/yyyy HH:mm:ss")
-    .schema(target_schema)
     .csv(f"{VOLUME_ROOT}/cell_traces.csv")
 )
+# Normalise columns to lowercase to match downstream queries.
+df = df.toDF(*[c.lower() for c in df.columns])
 
-print(f"Cell-trace rows: {df.count()}")
-df.write.format("delta").mode("overwrite").saveAsTable(target_traces)
+print(f"Cell-trace rows: {df.count()}; cols: {len(df.columns)}")
+df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(target_traces)
 
 # COMMAND ----------
 # MAGIC %md ## 4. RCA rules — JSON → Delta with `search_text` column for embedding
