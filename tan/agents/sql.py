@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from databricks.sdk import WorkspaceClient
-from databricks.sdk.service.sql import StatementState
+from databricks.sdk.service.sql import StatementParameterListItem, StatementState
 
 
 def _coerce(value: Any) -> Any:
@@ -35,12 +35,29 @@ class SqlClient:
         self.w = workspace or WorkspaceClient()
 
     def query(self, sql: str, *, parameters: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
-        """Run a SQL statement and return rows as list[dict]."""
+        """Run a SQL statement and return rows as list[dict].
+
+        ``parameters`` accepts a list of {"name", "value", "type"?} dicts; we
+        convert them to ``StatementParameterListItem`` because the SDK calls
+        ``.as_dict()`` on each item internally and a raw dict would explode
+        with ``'dict' object has no attribute 'as_dict'``.
+        """
+        sdk_params = None
+        if parameters:
+            sdk_params = [
+                StatementParameterListItem(
+                    name=p["name"],
+                    value=None if p.get("value") is None else str(p["value"]),
+                    type=p.get("type"),
+                )
+                for p in parameters
+            ]
+
         result = self.w.statement_execution.execute_statement(
             warehouse_id=self.warehouse_id,
             statement=sql,
             wait_timeout="50s",
-            parameters=parameters or None,
+            parameters=sdk_params,
         )
 
         state = result.status.state
