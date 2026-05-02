@@ -64,10 +64,10 @@ class Settings:
 
 def load_settings() -> Settings:
     return Settings(
-        catalog=os.environ.get("CATALOG", "telco_demo"),
+        catalog=os.environ.get("CATALOG", "srd_vibes_catalog"),
         schema=os.environ.get("SCHEMA", "network_intel"),
         volume=os.environ.get("VOLUME", "raw"),
-        llm_endpoint=os.environ.get("LLM_ENDPOINT", "claude-opus-4-7-gw"),
+        llm_endpoint=os.environ.get("LLM_ENDPOINT", "databricks-claude-opus-4-7"),
         embedding_endpoint=os.environ.get("EMBEDDING_ENDPOINT", "databricks-gte-large-en"),
         agent_endpoint=os.environ.get("AGENT_ENDPOINT", "telco-rca-agents"),
         vs_endpoint=os.environ.get("VS_ENDPOINT", "srd-vibes-vs"),

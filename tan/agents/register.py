@@ -4,7 +4,7 @@ Usage (from a notebook, see `notebooks/05_register_and_deploy_agent.py`):
 
     from tan.agents.register import log_and_register
     log_and_register(
-        catalog="telco_demo", schema="network_intel",
+        catalog="srd_vibes_catalog", schema="network_intel",
         model_name="incident_detector",
         agent_module="tan.agents.incident_detector",
         agent_class="IncidentDetectorAgent",

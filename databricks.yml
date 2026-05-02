@@ -7,7 +7,7 @@ include:
 variables:
   catalog:
     description: Unity Catalog catalog used for telco demo data and registered models
-    default: telco_demo
+    default: srd_vibes_catalog
 
   schema:
     description: UC schema for tables, volumes, models
@@ -18,8 +18,11 @@ variables:
     default: raw
 
   llm_endpoint:
-    description: AI-Gateway-fronted Claude Opus 4.7 serving endpoint
-    default: claude-opus-4-7-gw
+    description: |
+      Native FMAPI Claude Opus 4.7 endpoint. AI Gateway features (rate limits,
+      usage tracking, inference table, guardrails) are applied to this endpoint
+      by `notebooks/04_apply_ai_gateway.py`.
+    default: databricks-claude-opus-4-7
 
   embedding_endpoint:
     description: FMAPI embedding endpoint

@@ -21,9 +21,9 @@ from pathlib import Path
 REPO_ROOT = Path.cwd().parent if "DATABRICKS_RUNTIME_VERSION" in os.environ else Path(".").resolve()
 sys.path.insert(0, str(REPO_ROOT))
 
-CATALOG = dbutils.widgets.get("catalog") if dbutils.widgets.getAll() else "telco_demo"
+CATALOG = dbutils.widgets.get("catalog") if dbutils.widgets.getAll() else "srd_vibes_catalog"
 SCHEMA = dbutils.widgets.get("schema") if dbutils.widgets.getAll() else "network_intel"
-LLM_ENDPOINT = dbutils.widgets.get("llm_endpoint") if dbutils.widgets.getAll() else "claude-opus-4-7-gw"
+LLM_ENDPOINT = dbutils.widgets.get("llm_endpoint") if dbutils.widgets.getAll() else "databricks-claude-opus-4-7"
 EMBEDDING_ENDPOINT = dbutils.widgets.get("embedding_endpoint") if dbutils.widgets.getAll() else "databricks-gte-large-en"
 VS_ENDPOINT = dbutils.widgets.get("vs_endpoint") if dbutils.widgets.getAll() else "srd-vibes-vs"
 RULES_INDEX = dbutils.widgets.get("rules_index") if dbutils.widgets.getAll() else "rca_rules_vs_idx"

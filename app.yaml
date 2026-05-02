@@ -8,13 +8,13 @@ command:
 
 env:
   - name: CATALOG
-    value: telco_demo
+    value: srd_vibes_catalog
   - name: SCHEMA
     value: network_intel
   - name: VOLUME
     value: raw
   - name: LLM_ENDPOINT
-    value: claude-opus-4-7-gw
+    value: databricks-claude-opus-4-7
   - name: EMBEDDING_ENDPOINT
     value: databricks-gte-large-en
   - name: AGENT_ENDPOINT

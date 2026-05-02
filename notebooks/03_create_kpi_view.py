@@ -14,7 +14,7 @@
 import dlt
 from pyspark.sql import functions as F
 
-CATALOG = spark.conf.get("catalog", "telco_demo")
+CATALOG = spark.conf.get("catalog", "srd_vibes_catalog")
 SCHEMA = spark.conf.get("schema", "network_intel")
 SOURCE = f"{CATALOG}.{SCHEMA}.performance"
 

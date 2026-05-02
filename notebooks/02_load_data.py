@@ -16,7 +16,7 @@ sys.path.insert(0, str(REPO_ROOT))
 from pyspark.sql import functions as F
 from pyspark.sql.types import StructType, StructField, StringType, BooleanType, TimestampType, ArrayType
 
-CATALOG = dbutils.widgets.get("catalog") if dbutils.widgets.getAll() else "telco_demo"
+CATALOG = dbutils.widgets.get("catalog") if dbutils.widgets.getAll() else "srd_vibes_catalog"
 SCHEMA = dbutils.widgets.get("schema") if dbutils.widgets.getAll() else "network_intel"
 VOLUME = dbutils.widgets.get("volume") if dbutils.widgets.getAll() else "raw"
 

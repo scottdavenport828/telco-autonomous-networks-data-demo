@@ -8,11 +8,11 @@ A multi-agent system for detecting anomalies and performing root cause analysis 
 
 | Layer | Databricks primitive |
 |---|---|
-| Storage | Unity Catalog Delta tables under `telco_demo.network_intel` |
-| Raw fixtures | UC Volume `telco_demo.network_intel.raw` |
+| Storage | Unity Catalog Delta tables under `srd_vibes_catalog.network_intel` |
+| Raw fixtures | UC Volume `srd_vibes_catalog.network_intel.raw` |
 | Materialized KPIs | Lakeflow Declarative Pipelines (`performance_kpi` MV) |
 | RAG | Databricks Vector Search (`rca_rules_vs_idx`, `incidents_vs_idx`) |
-| LLM | Claude Opus 4.7 served via Foundation Model API + AI Gateway (`claude-opus-4-7-gw`) |
+| LLM | Native FMAPI endpoint `databricks-claude-opus-4-7` with Unity AI Gateway features (rate limits, usage tracking, inference table, PII guardrails) applied via `notebooks/04_apply_ai_gateway.py` |
 | Embeddings | FMAPI `databricks-gte-large-en` |
 | Agents | Mosaic AI Agent Framework (MLflow `ChatAgent`) — `incident_detector`, `rca_orchestrator` |
 | Backend | FastAPI |
@@ -51,8 +51,9 @@ A multi-agent system for detecting anomalies and performing root cause analysis 
 
 - Databricks workspace with Unity Catalog, Vector Search, Foundation Model API, and Apps enabled.
 - Databricks CLI authenticated (`databricks auth login --profile srd-vibes` recommended).
-- Anthropic API key (for Claude Opus 4.7) stored in a Databricks Secret scope (see `resources/serving_endpoints.yml`).
 - Node 20+ and Python 3.11+ for local frontend/agent development.
+
+The LLM is `databricks-claude-opus-4-7` (native FMAPI pay-per-token); no provider API key is needed.
 
 ### Deploy
 
@@ -64,9 +65,11 @@ cd frontend && npm install && npm run build && cd ..
 databricks bundle validate --profile srd-vibes
 databricks bundle deploy --profile srd-vibes
 
-# 3. Run setup notebooks (deploys Vector Search index, registers agents, etc.)
-databricks bundle run setup_pipeline --profile srd-vibes
-databricks bundle run register_agents --profile srd-vibes
+# 3. Run setup jobs in order
+databricks bundle run setup --profile srd-vibes              # UC + Vector Search
+databricks bundle run load_data --profile srd-vibes          # CSVs → Delta
+databricks bundle run apply_ai_gateway --profile srd-vibes   # Gateway features on databricks-claude-opus-4-7
+databricks bundle run register_agents --profile srd-vibes    # MLflow log + agents.deploy()
 
 # 4. Launch the app
 databricks apps deploy telco-rca --source-code-path /Workspace/Users/$USER/.bundle/telco-autonomous-networks-databricks/dev/files --profile srd-vibes

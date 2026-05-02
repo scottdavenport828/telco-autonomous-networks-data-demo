@@ -23,7 +23,7 @@ sys.path.insert(0, str(REPO_ROOT))
 
 from tan.sql.schema import create_table_sql
 
-CATALOG = dbutils.widgets.get("catalog") if dbutils.widgets.getAll() else "telco_demo"
+CATALOG = dbutils.widgets.get("catalog") if dbutils.widgets.getAll() else "srd_vibes_catalog"
 SCHEMA = dbutils.widgets.get("schema") if dbutils.widgets.getAll() else "network_intel"
 VOLUME = dbutils.widgets.get("volume") if dbutils.widgets.getAll() else "raw"
 VS_ENDPOINT = dbutils.widgets.get("vs_endpoint") if dbutils.widgets.getAll() else "srd-vibes-vs"

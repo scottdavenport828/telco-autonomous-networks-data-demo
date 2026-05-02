@@ -31,6 +31,21 @@ resources:
               schema: ${var.schema}
               volume: ${var.volume}
 
+    apply_ai_gateway:
+      name: telco-rca-apply-ai-gateway
+      description: |
+        Applies Unity AI Gateway features (rate limits, usage tracking,
+        inference table, PII guardrails) to the native FMAPI endpoint
+        databricks-claude-opus-4-7.
+      tasks:
+        - task_key: apply_ai_gateway
+          notebook_task:
+            notebook_path: ../notebooks/04_apply_ai_gateway.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              llm_endpoint: ${var.llm_endpoint}
+
     register_agents:
       name: telco-rca-register-agents
       description: |
