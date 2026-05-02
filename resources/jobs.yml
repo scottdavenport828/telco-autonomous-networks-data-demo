@@ -46,6 +46,41 @@ resources:
               schema: ${var.schema}
               llm_endpoint: ${var.llm_endpoint}
 
+    build_profile:
+      name: telco-rca-build-profile
+      description: |
+        One-shot. Computes per-(cell, column) statistics from the existing
+        `performance` table and writes them to `cell_profiles`. Re-runnable.
+      tasks:
+        - task_key: build_profile
+          notebook_task:
+            notebook_path: ../notebooks/07_build_profile.py
+
+    backfill:
+      name: telco-rca-backfill
+      description: |
+        One-shot. Generates synthetic 15-min PM batches from the last existing
+        measurement_end up to current_timestamp() so the dashboard's "last
+        24h" view shows real history.
+      tasks:
+        - task_key: backfill
+          notebook_task:
+            notebook_path: ../notebooks/08_backfill_to_now.py
+
+    streaming_data_generator:
+      name: telco-rca-streaming-data-generator
+      description: |
+        Appends one synthetic 15-min batch on every trigger. Schedule on a
+        15-min cron in the Databricks UI once the demo is live.
+      tasks:
+        - task_key: tick
+          notebook_task:
+            notebook_path: ../notebooks/09_generate_tick.py
+      schedule:
+        quartz_cron_expression: "0 */15 * * * ?"
+        timezone_id: "UTC"
+        pause_status: PAUSED
+
     register_agents:
       name: telco-rca-register-agents
       description: |

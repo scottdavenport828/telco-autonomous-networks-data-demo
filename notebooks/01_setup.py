@@ -104,6 +104,30 @@ print(ddl)
 spark.sql(ddl)
 
 # COMMAND ----------
+# MAGIC %md ## 2b. Streaming-data-generator tables
+# MAGIC
+# MAGIC `cell_profiles` holds per-(cell, column) statistics learned from the
+# MAGIC original CSV fixtures and is used by `tan.data_generator` to sample
+# MAGIC fresh rows. `anomaly_schedule` is the control plane for demo-able
+# MAGIC anomaly injection.
+
+# COMMAND ----------
+ddl = create_table_sql(
+    f"{CATALOG}.{SCHEMA}.cell_profiles",
+    schemas_dir / "cell_profiles.json",
+)
+print(ddl)
+spark.sql(ddl)
+
+ddl = create_table_sql(
+    f"{CATALOG}.{SCHEMA}.anomaly_schedule",
+    schemas_dir / "anomaly_schedule.json",
+    properties={"delta.enableChangeDataFeed": "true"},
+)
+print(ddl)
+spark.sql(ddl)
+
+# COMMAND ----------
 # MAGIC %md ## 3. Vector Search endpoint
 
 # COMMAND ----------

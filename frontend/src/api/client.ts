@@ -276,4 +276,34 @@ export const api = {
   obsLatency: (hours = 24) => jsonFetch<LatencyResponse>(`/api/obs/latency?hours=${hours}`),
   obsRecent: (limit = 50) => jsonFetch<RecentResponse>(`/api/obs/recent?limit=${limit}`),
   obsPii: (hours = 24) => jsonFetch<PiiResponse>(`/api/obs/pii?hours=${hours}`),
+  injectAnomaly: (req: AnomalyRequest) =>
+    jsonFetch<Anomaly>("/api/anomaly", {
+      method: "POST",
+      body: JSON.stringify(req),
+    }),
+  listAnomalies: () => jsonFetch<{ rows: Anomaly[] }>("/api/anomaly"),
+};
+
+// ---- Anomaly types -----------------------------------------------------------
+
+export type AnomalyRequest = {
+  enodeb_id: string;
+  cell_id: string;
+  kpi: "erab_success_rate" | "retainability";
+  magnitude: number;
+  duration_minutes?: number;
+  note?: string;
+};
+
+export type Anomaly = {
+  id: string;
+  enodeb_id: string;
+  cell_id: string;
+  kpi: string;
+  start_ts: string;
+  end_ts: string;
+  magnitude: number;
+  note: string | null;
+  status: string;
+  created_ts?: string;
 };

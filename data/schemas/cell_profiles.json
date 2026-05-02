@@ -1,0 +1,12 @@
+[
+  {"name": "enodeb_id", "type": "STRING", "mode": "REQUIRED"},
+  {"name": "cell_id", "type": "STRING", "mode": "REQUIRED"},
+  {"name": "column_name", "type": "STRING", "mode": "REQUIRED"},
+  {"name": "mean", "type": "FLOAT64", "mode": "NULLABLE"},
+  {"name": "std", "type": "FLOAT64", "mode": "NULLABLE"},
+  {"name": "min_val", "type": "FLOAT64", "mode": "NULLABLE"},
+  {"name": "max_val", "type": "FLOAT64", "mode": "NULLABLE"},
+  {"name": "p10", "type": "FLOAT64", "mode": "NULLABLE"},
+  {"name": "p90", "type": "FLOAT64", "mode": "NULLABLE"},
+  {"name": "computed_ts", "type": "TIMESTAMP", "mode": "REQUIRED"}
+]
