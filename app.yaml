@@ -14,7 +14,7 @@ env:
   - name: VOLUME
     value: raw
   - name: LLM_ENDPOINT
-    value: databricks-claude-opus-4-7
+    value: databricks-claude-opus-4-6
   - name: EMBEDDING_ENDPOINT
     value: databricks-gte-large-en
   - name: AGENT_ENDPOINT

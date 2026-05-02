@@ -25,10 +25,10 @@ variables:
 
   llm_endpoint:
     description: |
-      Native FMAPI Claude Opus 4.7 endpoint. AI Gateway features (rate limits,
+      Native FMAPI Claude Opus 4.6 endpoint. AI Gateway features (rate limits,
       usage tracking, inference table, guardrails) are applied to this endpoint
       by `notebooks/04_apply_ai_gateway.py`.
-    default: databricks-claude-opus-4-7
+    default: databricks-claude-opus-4-6
 
   embedding_endpoint:
     description: FMAPI embedding endpoint

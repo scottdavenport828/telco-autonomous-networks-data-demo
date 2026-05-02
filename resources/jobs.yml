@@ -36,7 +36,7 @@ resources:
       description: |
         Applies Unity AI Gateway features (rate limits, usage tracking,
         inference table, PII guardrails) to the native FMAPI endpoint
-        databricks-claude-opus-4-7.
+        databricks-claude-opus-4-6.
       tasks:
         - task_key: apply_ai_gateway
           notebook_task:

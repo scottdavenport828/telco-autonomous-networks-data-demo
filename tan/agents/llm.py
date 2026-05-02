@@ -1,4 +1,4 @@
-"""Thin wrapper around the native FMAPI `databricks-claude-opus-4-7` endpoint.
+"""Thin wrapper around the native FMAPI `databricks-claude-opus-4-6` endpoint.
 
 The endpoint exposes the standard OpenAI-style `llm/v1/chat` surface, so we
 use OpenAI-compatible request/response shapes. Unity AI Gateway features
@@ -54,9 +54,9 @@ class GatewayLLM:
         tool_choice: str | dict | None = None,
         max_tokens: int = 2048,
     ) -> dict[str, Any]:
-        # Note: Claude Opus 4.7 has extended thinking and does not accept
-        # `temperature`. We omit it so the same code path works on opus-4-7,
-        # opus-4-6, sonnet-4-6, etc.
+        # Note: some Anthropic models on FMAPI (opus-4-7 etc.) reject the
+        # `temperature` field. We omit it so the same code path works across
+        # opus-4-6, opus-4-7, sonnet-4-6, etc.
         payload: dict[str, Any] = {
             "messages": [_clean_message(m) for m in messages],
             "max_tokens": max_tokens,

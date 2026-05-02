@@ -12,7 +12,7 @@ A multi-agent system for detecting anomalies and performing root cause analysis 
 | Raw fixtures | UC Volume `srd_vibes_catalog.network_intel.raw` |
 | Materialized KPIs | Lakeflow Declarative Pipelines (`performance_kpi` MV) |
 | RAG | Databricks Vector Search (`rca_rules_vs_idx`, `incidents_vs_idx`) |
-| LLM | Native FMAPI endpoint `databricks-claude-opus-4-7` with Unity AI Gateway features (rate limits, usage tracking, inference table, PII guardrails) applied via `notebooks/04_apply_ai_gateway.py` |
+| LLM | Native FMAPI endpoint `databricks-claude-opus-4-6` with Unity AI Gateway features (rate limits, usage tracking, inference table, PII guardrails) applied via `notebooks/04_apply_ai_gateway.py` |
 | Embeddings | FMAPI `databricks-gte-large-en` |
 | Agents | Mosaic AI Agent Framework (MLflow `ChatAgent`) — `incident_detector`, `rca_orchestrator` |
 | Backend | FastAPI |
@@ -53,7 +53,7 @@ A multi-agent system for detecting anomalies and performing root cause analysis 
 - Databricks CLI authenticated (`databricks auth login --profile srd-vibes` recommended).
 - Node 20+ and Python 3.11+ for local frontend/agent development.
 
-The LLM is `databricks-claude-opus-4-7` (native FMAPI pay-per-token); no provider API key is needed.
+The LLM is `databricks-claude-opus-4-6` (native FMAPI pay-per-token); no provider API key is needed.
 
 ### Deploy
 
@@ -68,7 +68,7 @@ databricks bundle deploy --profile srd-vibes
 # 3. Run setup jobs in order
 databricks bundle run setup --profile srd-vibes              # UC + Vector Search
 databricks bundle run load_data --profile srd-vibes          # CSVs → Delta
-databricks bundle run apply_ai_gateway --profile srd-vibes   # Gateway features on databricks-claude-opus-4-7
+databricks bundle run apply_ai_gateway --profile srd-vibes   # Gateway features on databricks-claude-opus-4-6
 databricks bundle run register_agents --profile srd-vibes    # MLflow log + agents.deploy()
 
 # 4. Launch the app

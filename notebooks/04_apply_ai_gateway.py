@@ -3,7 +3,7 @@
 # MAGIC # 04_apply_ai_gateway
 # MAGIC
 # MAGIC Applies Unity AI Gateway features to the native FMAPI endpoint
-# MAGIC `databricks-claude-opus-4-7`. No Anthropic API key required — the endpoint
+# MAGIC `databricks-claude-opus-4-6`. No Anthropic API key required — the endpoint
 # MAGIC is provided by Databricks as a pay-per-token service.
 # MAGIC
 # MAGIC Features applied:
@@ -19,7 +19,7 @@
 # COMMAND ----------
 CATALOG = dbutils.widgets.get("catalog") if dbutils.widgets.getAll() else "srd_vibes_catalog"
 SCHEMA = dbutils.widgets.get("schema") if dbutils.widgets.getAll() else "network_intel"
-LLM_ENDPOINT = dbutils.widgets.get("llm_endpoint") if dbutils.widgets.getAll() else "databricks-claude-opus-4-7"
+LLM_ENDPOINT = dbutils.widgets.get("llm_endpoint") if dbutils.widgets.getAll() else "databricks-claude-opus-4-6"
 
 print(f"Applying AI Gateway config to endpoint: {LLM_ENDPOINT}")
 print(f"Inference table target: {CATALOG}.{SCHEMA}.gw_inference_*")

@@ -67,7 +67,7 @@ def load_settings() -> Settings:
         catalog=os.environ.get("CATALOG", "srd_vibes_catalog"),
         schema=os.environ.get("SCHEMA", "network_intel"),
         volume=os.environ.get("VOLUME", "raw"),
-        llm_endpoint=os.environ.get("LLM_ENDPOINT", "databricks-claude-opus-4-7"),
+        llm_endpoint=os.environ.get("LLM_ENDPOINT", "databricks-claude-opus-4-6"),
         embedding_endpoint=os.environ.get("EMBEDDING_ENDPOINT", "databricks-gte-large-en"),
         agent_endpoint=os.environ.get("AGENT_ENDPOINT", "telco-rca-agents"),
         vs_endpoint=os.environ.get("VS_ENDPOINT", "srd-vibes-vs"),

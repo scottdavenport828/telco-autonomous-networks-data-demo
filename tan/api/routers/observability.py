@@ -2,7 +2,7 @@
 
 Reads from two auto-created Delta tables in `srd_vibes_catalog.network_intel`:
 
-* ``gw_inference_payload`` — every call to the ``databricks-claude-opus-4-7``
+* ``gw_inference_payload`` — every call to the ``databricks-claude-opus-4-6``
   endpoint, captured by the Unity AI Gateway inference table feature
   (see ``notebooks/04_apply_ai_gateway.py``).
 * ``incident_detector_payload`` — every call to the ``telco-rca-agents``
@@ -242,12 +242,16 @@ def pii(
     No raw user content is returned — only metadata + the guardrail message
     string itself, which is the platform's own description of the block.
     """
+    # Only count *actual* PII/guardrail blocks. The earlier filter also
+    # matched generic request-validation errors that mention "guardrail"
+    # in the failure preamble (e.g. "input guardrail request failure: Bad
+    # request: json: unknown field …"). Those are schema parse errors, not
+    # PII redactions, and they pollute the redaction counter.
     pii_filter = """
 status_code >= 400
-AND (
-  LOWER(coalesce(get_json_object(response, '$.message'), '')) LIKE '%guardrail%'
-  OR LOWER(coalesce(get_json_object(response, '$.message'), '')) LIKE '%pii%'
-)
+AND LOWER(coalesce(get_json_object(response, '$.message'), '')) LIKE '%pii%'
+AND LOWER(coalesce(get_json_object(response, '$.message'), ''))
+    NOT LIKE '%bad request%'
 """
     bucket_sql = f"""
 WITH events AS (
