@@ -6,6 +6,11 @@
 # MAGIC then MERGE-loads into Delta tables. Idempotent — safe to re-run.
 
 # COMMAND ----------
+# MAGIC %pip install -q databricks-vectorsearch
+# COMMAND ----------
+dbutils.library.restartPython()
+
+# COMMAND ----------
 import json
 import sys
 from pathlib import Path
@@ -88,10 +93,23 @@ df.write.format("delta").mode("overwrite").saveAsTable(target_traces)
 
 # COMMAND ----------
 import os
+from datetime import datetime, timezone
 
 rules_dir = f"{VOLUME_ROOT}/rca_rules"
 rule_files = [f.path for f in dbutils.fs.ls(rules_dir) if f.name.endswith(".json")]
 print(f"Found {len(rule_files)} rule files")
+
+
+def _parse_ts(value):
+    if not value:
+        return None
+    # Source format: "2025-12-26 08:30:00 UTC"
+    cleaned = value.replace(" UTC", "+0000")
+    try:
+        return datetime.strptime(cleaned, "%Y-%m-%d %H:%M:%S%z")
+    except ValueError:
+        return datetime.fromisoformat(cleaned).astimezone(timezone.utc)
+
 
 records = []
 for fp in rule_files:
@@ -119,7 +137,7 @@ for fp in rule_files:
             "severity_determination_rule_tools": payload.get("severity_determination_rule_tools", []),
             "vendor": payload.get("vendor"),
             "author": payload.get("author"),
-            "creation_date": payload.get("creation_date"),
+            "creation_date": _parse_ts(payload.get("creation_date")),
             "is_current": payload.get("is_current"),
             "search_text": search_text,
         }
@@ -149,7 +167,10 @@ spark.sql(
 # COMMAND ----------
 from databricks.vector_search.client import VectorSearchClient
 
-VS_ENDPOINT = dbutils.widgets.get("vs_endpoint") if "vs_endpoint" in [w.name for w in dbutils.widgets.getAll()] else "srd-vibes-vs"
+try:
+    VS_ENDPOINT = dbutils.widgets.get("vs_endpoint")
+except Exception:
+    VS_ENDPOINT = "srd-vibes-vs"
 
 vsc = VectorSearchClient(disable_notice=True)
 

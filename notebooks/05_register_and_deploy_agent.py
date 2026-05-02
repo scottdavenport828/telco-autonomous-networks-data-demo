@@ -112,15 +112,54 @@ from mlflow.tracking import MlflowClient
 
 client = MlflowClient(registry_uri="databricks-uc")
 
-incident_latest = client.get_latest_versions(name=f"{CATALOG}.{SCHEMA}.incident_detector")[0]
-rca_latest = client.get_latest_versions(name=f"{CATALOG}.{SCHEMA}.rca_orchestrator")[0]
+
+def _latest_version(model_name: str) -> str:
+    # UC registry doesn't support get_latest_versions or order_by on search.
+    versions = client.search_model_versions(f"name='{model_name}'")
+    if not versions:
+        raise RuntimeError(f"No versions found for model {model_name}")
+    return str(max(int(v.version) for v in versions))
+
+
+incident_version = _latest_version(f"{CATALOG}.{SCHEMA}.incident_detector")
+rca_version = _latest_version(f"{CATALOG}.{SCHEMA}.rca_orchestrator")
+print(f"incident_detector v{incident_version}, rca_orchestrator v{rca_version}")
 
 # Deploy each agent as its own served entity behind a single endpoint, with
 # 50/50 split — the FastAPI router invokes by name path (`/api/chat/incident-detector`
 # vs `/api/chat/rca`) and selects the served entity via the `model` field.
+import time
+
+
+def _wait_until_ready(endpoint_name: str, timeout_s: int = 1800):
+    deadline = time.time() + timeout_s
+    while time.time() < deadline:
+        try:
+            ep = w.serving_endpoints.get(endpoint_name)
+        except Exception as e:
+            print(f"  waiting for endpoint to appear: {e}")
+            time.sleep(15)
+            continue
+        state = (ep.state.config_update if ep.state else None) or "UNKNOWN"
+        ready = ep.state.ready if ep.state else None
+        print(f"  endpoint {endpoint_name}: ready={ready}, config_update={state}")
+        if state == "NOT_UPDATING":
+            return
+        time.sleep(20)
+    raise TimeoutError(f"Endpoint {endpoint_name} did not reach NOT_UPDATING within {timeout_s}s")
+
+
+# Wait for any in-flight updates from prior runs to settle.
+try:
+    w.serving_endpoints.get(AGENT_ENDPOINT)
+    print("Existing endpoint found; waiting for it to be NOT_UPDATING before redeploying…")
+    _wait_until_ready(AGENT_ENDPOINT)
+except Exception:
+    print(f"Endpoint {AGENT_ENDPOINT} doesn't exist yet; will be created.")
+
 deployment = agents.deploy(
     model_name=f"{CATALOG}.{SCHEMA}.incident_detector",
-    model_version=incident_latest.version,
+    model_version=incident_version,
     endpoint_name=AGENT_ENDPOINT,
     scale_to_zero=True,
     environment_vars={
@@ -135,9 +174,12 @@ deployment = agents.deploy(
     },
 )
 
+print("Waiting for incident_detector deploy to settle before adding rca_orchestrator…")
+_wait_until_ready(AGENT_ENDPOINT)
+
 rca_deployment = agents.deploy(
     model_name=f"{CATALOG}.{SCHEMA}.rca_orchestrator",
-    model_version=rca_latest.version,
+    model_version=rca_version,
     endpoint_name=AGENT_ENDPOINT,
     scale_to_zero=True,
     environment_vars={

@@ -6,6 +6,9 @@ resources:
         Databricks-native multi-agent telco RCA demo.
         FastAPI backend + React/Vite frontend; agents: incident_detector + rca_orchestrator.
       source_code_path: ${workspace.file_path}
+      # Resource bindings declared up-front. Agent endpoint binding is added in
+      # a follow-up `databricks bundle deploy` after notebooks/05 has created the
+      # endpoint — see the deploy sequence in README.md.
       resources:
         - name: sql_warehouse
           sql_warehouse:
@@ -14,10 +17,6 @@ resources:
         - name: llm_endpoint
           serving_endpoint:
             name: ${var.llm_endpoint}
-            permission: CAN_QUERY
-        - name: agent_endpoint
-          serving_endpoint:
-            name: ${var.agent_endpoint}
             permission: CAN_QUERY
         - name: embedding_endpoint
           serving_endpoint:

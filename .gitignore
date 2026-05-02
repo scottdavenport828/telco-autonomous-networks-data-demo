@@ -54,3 +54,8 @@ out/
 
 # Logs
 *.log
+
+# Vite/TS build cache
+frontend/*.tsbuildinfo
+frontend/vite.config.d.ts
+frontend/vite.config.js

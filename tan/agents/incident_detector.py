@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
+import uuid
 from typing import Any
 
 import mlflow
@@ -124,7 +125,9 @@ class IncidentDetectorAgent(ChatAgent):
             if not tool_calls:
                 content = choice.get("content") or ""
                 return ChatAgentResponse(
-                    messages=[ChatAgentMessage(role="assistant", content=content)]
+                    messages=[
+                        ChatAgentMessage(id=str(uuid.uuid4()), role="assistant", content=content)
+                    ]
                 )
 
             for tc in tool_calls:
@@ -142,6 +145,7 @@ class IncidentDetectorAgent(ChatAgent):
         return ChatAgentResponse(
             messages=[
                 ChatAgentMessage(
+                    id=str(uuid.uuid4()),
                     role="assistant",
                     content="Tool-use loop limit reached; please retry with a more specific request.",
                 )
@@ -158,3 +162,8 @@ class IncidentDetectorAgent(ChatAgent):
         result = self.predict(messages, context, custom_inputs)
         for msg in result.messages:
             yield ChatAgentChunk(delta=msg)
+
+
+# Required when this module is logged via `mlflow.pyfunc.log_model(python_model=<this_file>)`.
+AGENT = IncidentDetectorAgent()
+mlflow.models.set_model(AGENT)
