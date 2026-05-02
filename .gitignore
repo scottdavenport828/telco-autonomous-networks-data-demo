@@ -59,3 +59,7 @@ out/
 frontend/*.tsbuildinfo
 frontend/vite.config.d.ts
 frontend/vite.config.js
+
+# Local mlflow dev db (created by stray local mlflow imports)
+mlflow.db
+mlruns/
