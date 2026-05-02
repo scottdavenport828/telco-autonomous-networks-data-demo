@@ -1,5 +1,5 @@
 resources:
-  serving_endpoints:
+  model_serving_endpoints:
     claude_opus_47_gw:
       name: ${var.llm_endpoint}
       ai_gateway:
