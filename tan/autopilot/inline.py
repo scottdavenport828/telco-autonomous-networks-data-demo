@@ -170,8 +170,11 @@ LIMIT {max_per_run}
     if not proposed:
         return {"stage": "remediate", "count": 0}
 
+    import uuid as _uuid
+
     n = 0
     for a in proposed:
+        heal_id = str(_uuid.uuid4())
         sql.execute(
             f"""
 UPDATE {actions}
@@ -181,16 +184,27 @@ SET status = 'APPLIED',
 WHERE id = '{a["id"]}'
 """
         )
+        # Use parameter binding so neither uuid() nor user-provided strings
+        # get evaluated in the inline-table VALUES clause (Databricks SQL
+        # rejects non-deterministic functions there with
+        # INVALID_INLINE_TABLE.CANNOT_EVALUATE_EXPRESSION_IN_INLINE_TABLE).
         sql.execute(
             f"""
 INSERT INTO {schedule}
   (id, enodeb_id, cell_id, kpi, start_ts, end_ts, magnitude, note, status, created_ts)
 VALUES
-  (uuid(), '{a["enodeb_id"]}', '{a["cell_id"]}', 'erab_success_rate',
+  (:heal_id, :enodeb_id, :cell_id, 'erab_success_rate',
    current_timestamp(),
    current_timestamp() + INTERVAL 30 MINUTES,
-   0.99, 'autopilot heal for action {a["id"]}', 'PENDING', current_timestamp())
-"""
+   :magnitude, :note, 'PENDING', current_timestamp())
+""",
+            parameters=[
+                {"name": "heal_id", "value": heal_id},
+                {"name": "enodeb_id", "value": str(a["enodeb_id"])},
+                {"name": "cell_id", "value": str(a["cell_id"])},
+                {"name": "magnitude", "value": 0.99, "type": "DOUBLE"},
+                {"name": "note", "value": f"autopilot heal for action {a['id']}"},
+            ],
         )
         sql.execute(
             f"""
