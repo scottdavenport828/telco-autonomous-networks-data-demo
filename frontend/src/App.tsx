@@ -5,6 +5,7 @@ import Incidents from "./pages/Incidents";
 import IncidentDetail from "./pages/IncidentDetail";
 import Workbench from "./pages/Workbench";
 import Observability from "./pages/Observability";
+import NetworkMap from "./pages/NetworkMap";
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
   clsx(
@@ -30,6 +31,9 @@ export default function App() {
             <NavLink to="/workbench" className={navClass}>
               Workbench
             </NavLink>
+            <NavLink to="/network" className={navClass}>
+              Network
+            </NavLink>
             <NavLink to="/observability" className={navClass}>
               Observability
             </NavLink>
@@ -42,6 +46,7 @@ export default function App() {
           <Route path="/incidents" element={<Incidents />} />
           <Route path="/incidents/:id" element={<IncidentDetail />} />
           <Route path="/workbench" element={<Workbench />} />
+          <Route path="/network" element={<NetworkMap />} />
           <Route path="/observability" element={<Observability />} />
         </Routes>
       </main>

@@ -282,6 +282,59 @@ export const api = {
       body: JSON.stringify(req),
     }),
   listAnomalies: () => jsonFetch<{ rows: Anomaly[] }>("/api/anomaly"),
+  mapCells: () => jsonFetch<MapCellsResponse>("/api/map/cells"),
+  mapAnomalies: () => jsonFetch<{ rows: MapAnomaly[] }>("/api/map/anomalies"),
+};
+
+// ---- Network map types -------------------------------------------------------
+
+export type MapCell = {
+  enodeb_id: string;
+  cell_id: string;
+  site_name: string;
+  lat: number;
+  lon: number;
+  azimuth: number;
+  range_m: number;
+  radio: string;
+  band: string | null;
+  mcc: number;
+  mnc: number;
+  network_name: string;
+  is_active: boolean;
+  erab_success_rate: number | null;
+  retainability: number | null;
+  latest_ts: string | null;
+};
+
+export type MapCellsResponse = {
+  rows: MapCell[];
+  thresholds: Thresholds;
+};
+
+export type MapAnomaly = {
+  id: string;
+  enodeb_id: string;
+  cell_id: string;
+  kpi: string;
+  magnitude: number;
+  start_ts: string;
+  end_ts: string;
+  status: string;
+};
+
+export type MapEvent = {
+  ts: string;
+  kind: "agent_call" | "anomaly" | "incident";
+  id: string;
+  latency_ms?: number | null;
+  in_tokens?: number | null;
+  out_tokens?: number | null;
+  status_code?: number | null;
+  enodeb_id?: string | null;
+  cell_id?: string | null;
+  magnitude?: number | null;
+  kpi?: string | null;
 };
 
 // ---- Anomaly types -----------------------------------------------------------

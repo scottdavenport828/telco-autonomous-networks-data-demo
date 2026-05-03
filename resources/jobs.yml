@@ -67,6 +67,16 @@ resources:
           notebook_task:
             notebook_path: ../notebooks/08_backfill_to_now.py
 
+    load_topology:
+      name: telco-rca-load-topology
+      description: |
+        One-shot. Loads `data/network_topology.json` into `cell_sites` so the
+        Map page has real Manhattan geography to render.
+      tasks:
+        - task_key: load_topology
+          notebook_task:
+            notebook_path: ../notebooks/10_load_topology.py
+
     streaming_data_generator:
       name: telco-rca-streaming-data-generator
       description: |

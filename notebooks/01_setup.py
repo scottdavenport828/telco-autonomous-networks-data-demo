@@ -127,6 +127,13 @@ ddl = create_table_sql(
 print(ddl)
 spark.sql(ddl)
 
+ddl = create_table_sql(
+    f"{CATALOG}.{SCHEMA}.cell_sites",
+    schemas_dir / "cell_sites.json",
+)
+print(ddl)
+spark.sql(ddl)
+
 # COMMAND ----------
 # MAGIC %md ## 3. Vector Search endpoint
 
