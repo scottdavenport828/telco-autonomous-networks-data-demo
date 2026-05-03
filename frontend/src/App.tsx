@@ -6,6 +6,7 @@ import IncidentDetail from "./pages/IncidentDetail";
 import Workbench from "./pages/Workbench";
 import Observability from "./pages/Observability";
 import NetworkMap from "./pages/NetworkMap";
+import Architecture from "./pages/Architecture";
 import AutopilotToggle from "./components/AutopilotToggle";
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
@@ -41,6 +42,9 @@ export default function App() {
             <NavLink to="/observability" className={navClass}>
               Observability
             </NavLink>
+            <NavLink to="/architecture" className={navClass}>
+              Architecture
+            </NavLink>
           </nav>
         </div>
       </header>
@@ -52,6 +56,7 @@ export default function App() {
           <Route path="/workbench" element={<Workbench />} />
           <Route path="/network" element={<NetworkMap />} />
           <Route path="/observability" element={<Observability />} />
+          <Route path="/architecture" element={<Architecture />} />
         </Routes>
       </main>
     </div>
