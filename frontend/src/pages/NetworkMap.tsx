@@ -233,7 +233,8 @@ export default function NetworkMap() {
           type: "circle",
           source: "events",
           paint: {
-            "circle-radius": ["interpolate", ["linear"], ["get", "age"], 0, 22, 1, 0],
+            // Pulse expands from 8 to 48px over the lifetime; opacity fades.
+            "circle-radius": ["interpolate", ["linear"], ["get", "age"], 0, 8, 1, 48],
             "circle-color": [
               "match",
               ["get", "kind"],
@@ -242,9 +243,17 @@ export default function NetworkMap() {
               "incident", "#f59e0b",
               "#7c3aed",
             ],
-            "circle-opacity": ["interpolate", ["linear"], ["get", "age"], 0, 0.6, 1, 0],
-            "circle-stroke-color": "#ffffff",
-            "circle-stroke-width": 1,
+            "circle-opacity": ["interpolate", ["linear"], ["get", "age"], 0, 0.85, 1, 0],
+            "circle-stroke-color": [
+              "match",
+              ["get", "kind"],
+              "anomaly", "#7f1d1d",
+              "agent_call", "#0c4a6e",
+              "incident", "#92400e",
+              "#4c1d95",
+            ],
+            "circle-stroke-width": 2,
+            "circle-stroke-opacity": ["interpolate", ["linear"], ["get", "age"], 0, 0.9, 1, 0],
           },
         });
       }
@@ -290,9 +299,12 @@ export default function NetworkMap() {
     if (!cells.length) return;
     const url = `/api/map/events?window=${WINDOW_TO_QUERY[windowKey]}&cap_per_sec=${capPerSec}`;
     const es = new EventSource(url);
+    const seenIds = new Set<string>();
     es.onmessage = (ev) => {
       try {
         const e: MapEvent = JSON.parse(ev.data);
+        if (e.id && seenIds.has(e.id)) return;
+        if (e.id) seenIds.add(e.id);
         eventQueueRef.current.push(e);
       } catch {
         // ignore malformed
@@ -305,6 +317,9 @@ export default function NetworkMap() {
     const tick = () => {
       const now = performance.now();
       const minGap = 1000 / Math.max(0.1, capPerSec);
+      // Pulse fade speed: slower → more visible. With 0.015 increment per frame
+      // (~60fps), a pulse lives ~1.1s. Bumped from 0.05 (0.33s) for legibility.
+      const ageStep = 0.015;
       // Drain at most one event per tick if cap allows.
       if (now - lastDrawAtRef.current >= minGap && eventQueueRef.current.length > 0) {
         const e = eventQueueRef.current.shift()!;
@@ -321,7 +336,7 @@ export default function NetworkMap() {
           // Mutate GeoJSON: keep recent ~50 features, age them.
           const cur = (src as unknown as { _data?: { features: any[] } })._data?.features ?? [];
           const aged = cur
-            .map((f: any) => ({ ...f, properties: { ...f.properties, age: f.properties.age + 0.05 } }))
+            .map((f: any) => ({ ...f, properties: { ...f.properties, age: f.properties.age + ageStep } }))
             .filter((f: any) => f.properties.age < 1);
           aged.unshift({
             type: "Feature",
@@ -339,10 +354,10 @@ export default function NetworkMap() {
           const src = m.getSource("events") as maplibregl.GeoJSONSource;
           const cur = (src as unknown as { _data?: { features: any[] } })._data?.features ?? [];
           if (cur.length) {
-            const aged = cur
-              .map((f: any) => ({ ...f, properties: { ...f.properties, age: f.properties.age + 0.05 } }))
+            const aged2 = cur
+              .map((f: any) => ({ ...f, properties: { ...f.properties, age: f.properties.age + ageStep } }))
               .filter((f: any) => f.properties.age < 1);
-            const fc = { type: "FeatureCollection" as const, features: aged };
+            const fc = { type: "FeatureCollection" as const, features: aged2 };
             (src as unknown as { _data?: typeof fc })._data = fc;
             src.setData(fc);
           }
@@ -409,20 +424,34 @@ export default function NetworkMap() {
         <h3 className="text-[11px] uppercase tracking-wide text-slate-500 mt-4 mb-1">Recent events ({recentEvents.length})</h3>
         <ul className="text-xs space-y-1 max-h-72 overflow-auto">
           {recentEvents.map((e, i) => (
-            <li key={`${e.id}-${i}`} className="flex items-center gap-2 border-b border-slate-100 py-1 last:border-0">
+            <li
+              key={`${e.id}-${i}`}
+              className="flex items-center gap-1.5 border-b border-slate-100 py-1 last:border-0 truncate"
+              title={`${e.ts} ${e.kind} ${e.enodeb_id ?? ""}/${e.cell_id ?? ""} ${e.kpi ?? ""}${e.magnitude !== null && e.magnitude !== undefined ? `=${e.magnitude}` : ""} ${e.latency_ms ?? ""}`}
+            >
               <span
                 className={clsx(
-                  "inline-block w-1.5 h-1.5 rounded-full",
+                  "inline-block w-1.5 h-1.5 rounded-full shrink-0",
                   e.kind === "anomaly" && "bg-rose-600",
                   e.kind === "agent_call" && "bg-sky-500",
                   e.kind === "incident" && "bg-amber-500",
                 )}
               />
-              <span className="text-slate-500 tabular-nums">{e.ts?.slice(11, 19) ?? "?"}</span>
-              <span className="font-mono text-slate-800">{e.kind}</span>
-              {e.enodeb_id && <span className="text-slate-500">{e.enodeb_id}/{e.cell_id ?? "?"}</span>}
-              {e.kpi && <span className="text-slate-500">{e.kpi}={e.magnitude}</span>}
-              {e.latency_ms && <span className="text-slate-500 ml-auto">{e.latency_ms}ms</span>}
+              <span className="text-slate-500 tabular-nums shrink-0">{e.ts?.slice(11, 19) ?? "?"}</span>
+              <span className="font-mono text-slate-800 shrink-0">
+                {e.kind === "agent_call" ? "agent" : e.kind}
+              </span>
+              {e.enodeb_id && (
+                <span className="text-slate-500 shrink-0">
+                  {e.enodeb_id}/{e.cell_id ?? "?"}
+                </span>
+              )}
+              {e.latency_ms !== null && e.latency_ms !== undefined && (
+                <span className="text-slate-500 ml-auto tabular-nums shrink-0">{e.latency_ms}ms</span>
+              )}
+              {e.kpi && (
+                <span className="text-slate-500 truncate">{e.kpi}={e.magnitude}</span>
+              )}
             </li>
           ))}
         </ul>

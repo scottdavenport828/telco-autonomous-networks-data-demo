@@ -101,7 +101,6 @@ async def events(
     poll cadence) so it controls how busy the map looks.
     """
     minutes = _VALID_WINDOWS.get(window, 15)
-    since_filter = f"current_timestamp() - INTERVAL {minutes} MINUTES"
 
     def _fetch_since(ts_iso: str) -> list[dict[str, Any]]:
         gw = sql.query(
@@ -162,24 +161,35 @@ LIMIT 200
         merged.sort(key=lambda r: r.get("ts") or "")
         return merged
 
-    # Initial replay anchor: window minutes ago.
+    # Initial replay anchor: window minutes ago. Use microsecond precision —
+    # second-only timestamps caused rows with subsecond fractions to keep
+    # re-matching `> anchor` on every poll.
     initial_anchor = (datetime.now(timezone.utc) - timedelta(minutes=minutes)).strftime(
-        "%Y-%m-%d %H:%M:%S"
+        "%Y-%m-%d %H:%M:%S.%f"
     )
+
+    def _normalise_ts(raw: str) -> str:
+        return raw.replace("T", " ").rstrip("Z")
 
     async def event_stream():
         anchor = initial_anchor
-        # Initial backfill (replay window).
+        # Per-id dedupe so a row exactly at the anchor doesn't fire twice and
+        # so we're robust to clock skew / boundary conditions.
+        seen: dict[str, None] = {}
+
         try:
-            initial = _fetch_since(anchor)
-            for ev in initial:
+            for ev in _fetch_since(anchor):
+                eid = ev.get("id")
+                if eid in seen:
+                    continue
+                if eid:
+                    seen[eid] = None
                 yield f"data: {json.dumps(ev, default=str)}\n\n"
                 if ev.get("ts"):
-                    anchor = str(ev["ts"]).replace("T", " ").rstrip("Z")[:19]
+                    anchor = _normalise_ts(str(ev["ts"]))
         except Exception as exc:  # noqa: BLE001
             yield f"event: error\ndata: {json.dumps({'message': str(exc)})}\n\n"
 
-        # Live tail.
         while True:
             await asyncio.sleep(poll_seconds)
             try:
@@ -188,9 +198,16 @@ LIMIT 200
                 yield f"event: error\ndata: {json.dumps({'message': str(exc)})}\n\n"
                 continue
             for ev in new:
+                eid = ev.get("id")
+                if eid in seen:
+                    continue
+                if eid:
+                    seen[eid] = None
                 yield f"data: {json.dumps(ev, default=str)}\n\n"
                 if ev.get("ts"):
-                    anchor = str(ev["ts"]).replace("T", " ").rstrip("Z")[:19]
+                    anchor = _normalise_ts(str(ev["ts"]))
+            if len(seen) > 5000:
+                seen = dict(list(seen.items())[-2500:])
             yield ": keepalive\n\n"
 
     # cap_per_sec is honoured client-side (it only affects animation pacing).
