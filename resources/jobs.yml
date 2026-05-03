@@ -91,6 +91,54 @@ resources:
         timezone_id: "UTC"
         pause_status: PAUSED
 
+    autopilot_detect:
+      name: telco-rca-autopilot-detect
+      description: Stage 1 — scan KPI view, create incidents.
+      tasks:
+        - task_key: detect
+          notebook_task:
+            notebook_path: ../notebooks/11_auto_detect.py
+      schedule:
+        quartz_cron_expression: "0 */5 * * * ?"
+        timezone_id: "UTC"
+        pause_status: PAUSED
+
+    autopilot_rca:
+      name: telco-rca-autopilot-rca
+      description: Stage 2 — run RcaOrchestratorAgent on incidents missing analysis.
+      tasks:
+        - task_key: rca
+          notebook_task:
+            notebook_path: ../notebooks/12_auto_rca.py
+      schedule:
+        quartz_cron_expression: "0 */10 * * * ?"
+        timezone_id: "UTC"
+        pause_status: PAUSED
+
+    autopilot_remediate:
+      name: telco-rca-autopilot-remediate
+      description: Stage 3 — promote PROPOSED actions to APPLIED + schedule healing.
+      tasks:
+        - task_key: remediate
+          notebook_task:
+            notebook_path: ../notebooks/13_auto_remediate.py
+      schedule:
+        quartz_cron_expression: "0 */5 * * * ?"
+        timezone_id: "UTC"
+        pause_status: PAUSED
+
+    autopilot_verify:
+      name: telco-rca-autopilot-verify
+      description: Stage 4 — verify recovery, mark actions VERIFIED, close incidents.
+      tasks:
+        - task_key: verify
+          notebook_task:
+            notebook_path: ../notebooks/14_auto_verify.py
+      schedule:
+        quartz_cron_expression: "0 */5 * * * ?"
+        timezone_id: "UTC"
+        pause_status: PAUSED
+
     register_agents:
       name: telco-rca-register-agents
       description: |

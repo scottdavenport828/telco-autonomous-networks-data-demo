@@ -96,6 +96,16 @@ def _floor_to_15min(ts: datetime) -> datetime:
     return ts.replace(minute=minute, second=0, microsecond=0)
 
 
+def _window_end(ts: datetime) -> datetime:
+    """measurement_end is the END of a 15-min window (matches upstream
+    semantics). For a tick fired at 01:08, the just-ended window is
+    00:45 → 01:00 — but we want each tick to *advance* the data, so we use
+    the upcoming boundary 01:15 as the measurement_end. That way the next
+    schedule run lands a fresh post-application row that the autopilot
+    verifier can see."""
+    return _floor_to_15min(ts) + timedelta(minutes=15)
+
+
 # ---------------------------------------------------------------------------
 # Core: build one performance row for one cell
 # ---------------------------------------------------------------------------
@@ -269,7 +279,7 @@ def generate_batch(
 ) -> tuple[int, int]:
     """Generate one tick's worth of rows and append to Delta. Returns (perf_rows, trace_rows)."""
     rng = random.Random(seed)
-    me = _floor_to_15min(measurement_end or datetime.now(timezone.utc))
+    me = _window_end(measurement_end or datetime.now(timezone.utc))
 
     profiles = load_profiles(spark, profiles_table=profiles_table)
     if not profiles:

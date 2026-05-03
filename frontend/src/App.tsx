@@ -6,6 +6,7 @@ import IncidentDetail from "./pages/IncidentDetail";
 import Workbench from "./pages/Workbench";
 import Observability from "./pages/Observability";
 import NetworkMap from "./pages/NetworkMap";
+import AutopilotToggle from "./components/AutopilotToggle";
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
   clsx(
@@ -18,8 +19,11 @@ export default function App() {
     <div className="min-h-screen flex flex-col">
       <header className="bg-white border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="font-semibold text-lg text-ink">
-            Telco Autonomous Networks <span className="text-slate-400 font-normal">/ Databricks-native</span>
+          <div className="flex items-center gap-3">
+            <div className="font-semibold text-lg text-ink">
+              Telco Autonomous Networks <span className="text-slate-400 font-normal">/ Databricks-native</span>
+            </div>
+            <AutopilotToggle />
           </div>
           <nav className="flex gap-2">
             <NavLink to="/" end className={navClass}>

@@ -1,0 +1,13 @@
+[
+  {"name": "id", "type": "STRING", "mode": "REQUIRED"},
+  {"name": "incident_id", "type": "STRING", "mode": "REQUIRED"},
+  {"name": "action_name", "type": "STRING", "mode": "REQUIRED"},
+  {"name": "parameters", "type": "STRING", "mode": "NULLABLE", "description": "JSON-encoded parameters passed to the action."},
+  {"name": "enodeb_id", "type": "STRING", "mode": "REQUIRED"},
+  {"name": "cell_id", "type": "STRING", "mode": "REQUIRED"},
+  {"name": "status", "type": "STRING", "mode": "REQUIRED", "description": "PROPOSED | APPLIED | VERIFIED | FAILED"},
+  {"name": "applied_ts", "type": "TIMESTAMP", "mode": "NULLABLE"},
+  {"name": "verified_ts", "type": "TIMESTAMP", "mode": "NULLABLE"},
+  {"name": "result_note", "type": "STRING", "mode": "NULLABLE"},
+  {"name": "created_ts", "type": "TIMESTAMP", "mode": "REQUIRED"}
+]

@@ -75,12 +75,47 @@ def get_uplink_configuration(*, enodeb_id: str, cell_id: str) -> dict[str, Any]:
 
 
 @mlflow.trace(span_type="TOOL", name="initiate_uplink_configuration_adjustment")
-def initiate_uplink_configuration_adjustment(*, enodeb_id: str, cell_id: str) -> dict[str, Any]:
-    """Stub for an automated remediation action."""
+def initiate_uplink_configuration_adjustment(
+    sql: SqlClient,
+    settings: Settings,
+    *,
+    enodeb_id: str,
+    cell_id: str,
+    incident_id: str | None = None,
+) -> dict[str, Any]:
+    """Record a PROPOSED remediation action in `actions_taken`.
+
+    The autopilot remediator promotes PROPOSED -> APPLIED on its next run and
+    schedules a healing anomaly_schedule entry; the verifier closes the loop
+    once the cell's KPI recovers. When called from the human Workbench path
+    the row still lands as PROPOSED — pause the autopilot toggle to keep it
+    that way and apply manually if you want a hold-and-confirm flow.
+    """
+    import json
+    import uuid
+
+    action_id = str(uuid.uuid4())
+    sql.execute(
+        f"""
+INSERT INTO {settings.catalog}.{settings.schema}.actions_taken
+  (id, incident_id, action_name, parameters, enodeb_id, cell_id, status, created_ts)
+VALUES
+  (:id, :incident_id, :action_name, :parameters, :enodeb_id, :cell_id, 'PROPOSED', current_timestamp())
+""",
+        parameters=[
+            {"name": "id", "value": action_id},
+            {"name": "incident_id", "value": incident_id or ""},
+            {"name": "action_name", "value": "uplink_configuration_adjustment"},
+            {"name": "parameters", "value": json.dumps({"enodeb_id": enodeb_id, "cell_id": cell_id})},
+            {"name": "enodeb_id", "value": str(enodeb_id)},
+            {"name": "cell_id", "value": str(cell_id)},
+        ],
+    )
     return {
         "status": "success",
+        "action_id": action_id,
         "details": (
-            "Uplink adjustment request has been issued. It can take up to an hour for "
-            "the changes to take effect."
+            "Uplink adjustment proposed. Autopilot will apply it on the next "
+            "remediator tick and verify recovery automatically."
         ),
     }

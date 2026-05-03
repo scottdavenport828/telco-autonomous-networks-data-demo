@@ -284,6 +284,31 @@ export const api = {
   listAnomalies: () => jsonFetch<{ rows: Anomaly[] }>("/api/anomaly"),
   mapCells: () => jsonFetch<MapCellsResponse>("/api/map/cells"),
   mapAnomalies: () => jsonFetch<{ rows: MapAnomaly[] }>("/api/map/anomalies"),
+  autopilotState: () => jsonFetch<{ enabled: boolean; raw: Record<string, string> }>("/api/autopilot/state"),
+  setAutopilot: (enabled: boolean) =>
+    jsonFetch<{ enabled: boolean }>("/api/autopilot/state", {
+      method: "POST",
+      body: JSON.stringify({ enabled }),
+    }),
+  runAutopilotStage: (stage: "detect" | "rca" | "remediate" | "verify") =>
+    jsonFetch<{ run_id: number; job_id: number; stage: string }>(`/api/autopilot/run/${stage}`, {
+      method: "POST",
+      body: JSON.stringify({}),
+    }),
+  recentActions: () => jsonFetch<{ rows: ActionTaken[] }>("/api/autopilot/recent"),
+};
+
+export type ActionTaken = {
+  id: string;
+  incident_id: string;
+  action_name: string;
+  enodeb_id: string;
+  cell_id: string;
+  status: "PROPOSED" | "APPLIED" | "VERIFIED" | "FAILED" | string;
+  applied_ts: string | null;
+  verified_ts: string | null;
+  result_note: string | null;
+  created_ts: string;
 };
 
 // ---- Network map types -------------------------------------------------------

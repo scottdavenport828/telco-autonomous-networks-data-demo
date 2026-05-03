@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from tan.api.routers import anomaly, chat, incidents, kpis, network_map, observability
+from tan.api.routers import anomaly, autopilot, chat, incidents, kpis, network_map, observability
 
 app = FastAPI(
     title="Telco Autonomous Networks — Databricks-native demo",
@@ -33,6 +33,7 @@ app.include_router(chat.router)
 app.include_router(observability.router)
 app.include_router(anomaly.router)
 app.include_router(network_map.router)
+app.include_router(autopilot.router)
 
 
 @app.get("/api/healthz")

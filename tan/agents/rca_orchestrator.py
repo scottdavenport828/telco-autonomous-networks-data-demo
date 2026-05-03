@@ -213,7 +213,7 @@ class RcaOrchestratorAgent(ChatAgent):
         if name == "get_uplink_configuration":
             return get_uplink_configuration(**args)
         if name == "initiate_uplink_configuration_adjustment":
-            return initiate_uplink_configuration_adjustment(**args)
+            return initiate_uplink_configuration_adjustment(self.sql, self.settings, **args)
         if name == "prior_incident_search":
             return prior_incident_search(
                 self.incidents_index,

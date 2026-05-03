@@ -135,6 +135,32 @@ print(ddl)
 spark.sql(ddl)
 
 # COMMAND ----------
+# MAGIC %md ## 2c. Autopilot tables (autonomous closed loop)
+
+# COMMAND ----------
+ddl = create_table_sql(
+    f"{CATALOG}.{SCHEMA}.actions_taken",
+    schemas_dir / "actions_taken.json",
+    properties={"delta.enableChangeDataFeed": "true"},
+)
+print(ddl)
+spark.sql(ddl)
+
+ddl = create_table_sql(
+    f"{CATALOG}.{SCHEMA}.autopilot_state",
+    schemas_dir / "autopilot_state.json",
+)
+print(ddl)
+spark.sql(ddl)
+
+spark.sql(f"""
+MERGE INTO {CATALOG}.{SCHEMA}.autopilot_state AS t
+USING (SELECT 'enabled' AS key, 'false' AS value) AS s
+ON t.key = s.key
+WHEN NOT MATCHED THEN INSERT (key, value, updated_ts) VALUES (s.key, s.value, current_timestamp())
+""")
+
+# COMMAND ----------
 # MAGIC %md ## 3. Vector Search endpoint
 
 # COMMAND ----------
