@@ -24,6 +24,15 @@ def _table(settings: Settings) -> str:
     return f"{settings.catalog}.{settings.schema}.autopilot_state"
 
 
+def _truthy(value: Any) -> bool:
+    """SqlClient auto-coerces "true"/"false" strings to Python bools, but
+    the same column may also come back as a raw string on other code paths.
+    Accept both."""
+    if isinstance(value, bool):
+        return value
+    return str(value).strip().lower() == "true"
+
+
 @router.get("/state")
 def get_state(
     sql: Annotated[SqlClient, Depends(get_sql_client)],
@@ -32,8 +41,8 @@ def get_state(
     rows = sql.query(f"SELECT key, value, updated_ts FROM {_table(settings)}")
     state = {r["key"]: r["value"] for r in rows}
     return {
-        "enabled": (state.get("enabled", "false") or "false").lower() == "true",
-        "raw": state,
+        "enabled": _truthy(state.get("enabled")),
+        "raw": {k: (v if isinstance(v, str) else str(v).lower()) for k, v in state.items()},
     }
 
 
