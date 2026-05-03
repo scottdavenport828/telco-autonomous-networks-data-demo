@@ -152,21 +152,39 @@ def update_incident(
     cause: str | None = None,
     resolution: str | None = None,
 ) -> dict[str, Any]:
-    """Update an incident with the final RCA report; embed the events for future similarity search."""
+    """Update an incident with the final RCA report; embed the events for future similarity search.
+
+    Databricks SQL doesn't support PostgreSQL ``$$``-quoted strings, so the
+    multi-line markdown report has to go through parameterised statements.
+    Dispatch the embedding update separately because the array literal isn't
+    parameterisable.
+    """
     embedding = embedder.embed(events) if events else []
-    embedding_literal = "ARRAY(" + ", ".join(f"CAST({v} AS DOUBLE)" for v in embedding) + ")" if embedding else "ARRAY()"
+    embedding_literal = (
+        "ARRAY(" + ", ".join(f"CAST({v} AS DOUBLE)" for v in embedding) + ")"
+        if embedding
+        else "ARRAY()"
+    )
 
     sql.execute(
         f"""
 UPDATE {settings.incidents_table} SET
   status = 'ANALYZED',
-  preliminary_analysis = $$ {report.replace('$$', '$ $')} $$,
-  severity = '{severity}',
-  events = $$ {events.replace('$$', '$ $')} $$,
+  preliminary_analysis = :report,
+  severity = :severity,
+  events = :events,
   events_embeddings = {embedding_literal},
-  cause = {('$$ ' + cause.replace('$$', '$ $') + ' $$') if cause else 'NULL'},
-  resolution = {('$$ ' + resolution.replace('$$', '$ $') + ' $$') if resolution else 'NULL'}
-WHERE incident_id = '{incident_id}'
-"""
+  cause = :cause,
+  resolution = :resolution
+WHERE incident_id = :incident_id
+""",
+        parameters=[
+            {"name": "incident_id", "value": incident_id},
+            {"name": "report", "value": report},
+            {"name": "severity", "value": severity},
+            {"name": "events", "value": events},
+            {"name": "cause", "value": cause if cause is not None else ""},
+            {"name": "resolution", "value": resolution if resolution is not None else ""},
+        ],
     )
     return {"status": "success", "incident_id": incident_id}

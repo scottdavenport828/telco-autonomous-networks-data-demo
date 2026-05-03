@@ -288,7 +288,10 @@ WHERE incident_id IN ({", ".join(f"'{i}'" for i in incident_ids)})
 # ---------------------------------------------------------------------------
 
 
-def rca(sql: SqlClient, settings: Settings, max_per_run: int = 3) -> dict[str, Any]:
+def rca(sql: SqlClient, settings: Settings, max_per_run: int = 1) -> dict[str, Any]:
+    """Run one RCA pass inline. Default max_per_run=1: agent loops take
+    30–60s and FastAPI keep-alive starts to look bad past 90s. The cron
+    job picks up the rest in the background."""
     if not is_enabled(sql, settings):
         return {"stage": "rca", "skipped": "autopilot disabled", "count": 0}
 
@@ -302,15 +305,14 @@ LIMIT {max_per_run}
 """
     )
     if not pending:
-        return {"stage": "rca", "count": 0}
+        return {"stage": "rca", "count": 0, "pending_remaining": 0}
 
-    # Defer the heavy import so a partially-broken agent module doesn't 500
-    # the whole router on healthy stages.
     from tan.agents._chat_compat import ChatAgentMessage  # noqa: PLC0415
     from tan.agents.rca_orchestrator import RcaOrchestratorAgent  # noqa: PLC0415
 
     agent = RcaOrchestratorAgent()
-    n = 0
+    successes: list[str] = []
+    failures: list[dict[str, str]] = []
     for r in pending:
         prompt = (
             f"Analyse incident {r['incident_id']}. Skip every user-confirmation "
@@ -320,8 +322,21 @@ LIMIT {max_per_run}
         )
         try:
             agent.predict([ChatAgentMessage(role="user", content=prompt)])
-            n += 1
-        except Exception:  # noqa: BLE001
-            # Don't blow up the whole batch — report partial progress.
-            pass
-    return {"stage": "rca", "count": n}
+            successes.append(r["incident_id"])
+        except Exception as exc:  # noqa: BLE001
+            failures.append(
+                {"incident_id": r["incident_id"], "error": f"{type(exc).__name__}: {exc}"[:400]}
+            )
+
+    remaining_rows = sql.query(
+        f"SELECT COUNT(*) AS n FROM {settings.incidents_table} WHERE status = 'NEW' AND preliminary_analysis IS NULL"
+    )
+    pending_remaining = int(remaining_rows[0]["n"]) if remaining_rows else 0
+
+    return {
+        "stage": "rca",
+        "count": len(successes),
+        "succeeded": successes,
+        "failed": failures,
+        "pending_remaining": pending_remaining,
+    }
