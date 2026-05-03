@@ -68,22 +68,28 @@ WHEN NOT MATCHED THEN INSERT (key, value, updated_ts) VALUES (s.key, s.value, cu
 @router.post("/run/{stage}")
 def run_stage(
     stage: str,
-    client: Annotated[WorkspaceClient, Depends(get_user_client)],
+    sql: Annotated[SqlClient, Depends(get_sql_client)],
+    settings: Annotated[Settings, Depends(get_settings)],
 ) -> dict[str, Any]:
-    """Trigger a one-off run of an autopilot stage by job name suffix.
+    """Run an autopilot stage **inline** in the FastAPI process.
 
-    Uses the calling user's identity (OBO). The App service principal is not
-    granted list/run permissions on the bundle's jobs, but the user is.
+    Originally this triggered the matching DAB job via WorkspaceClient.jobs.run_now,
+    but the OBO token in a Databricks App doesn't carry the `jobs` scope and
+    Apps doesn't expose a 'jobs' resource binding to grant it. SQL stages are
+    fast (1–5s); RCA can take 30–60s but still completes under FastAPI's
+    keep-alive. The cron-scheduled jobs continue to run the Spark version.
     """
-    valid = {"detect", "rca", "remediate", "verify"}
-    if stage not in valid:
-        raise HTTPException(400, f"stage must be one of {sorted(valid)}")
-    suffix = f"telco-rca-autopilot-{stage}"
-    matches = [j for j in client.jobs.list() if j.settings and j.settings.name and j.settings.name.endswith(suffix)]
-    if not matches:
-        raise HTTPException(404, f"no job matching '{suffix}'")
-    run = client.jobs.run_now(job_id=matches[0].job_id)
-    return {"run_id": run.run_id, "job_id": matches[0].job_id, "stage": stage}
+    from tan.autopilot.inline import detect, rca, remediate, verify
+
+    if stage == "detect":
+        return detect(sql, settings)
+    if stage == "remediate":
+        return remediate(sql, settings)
+    if stage == "verify":
+        return verify(sql, settings)
+    if stage == "rca":
+        return rca(sql, settings)
+    raise HTTPException(400, f"unknown stage: {stage}")
 
 
 @router.get("/recent")
